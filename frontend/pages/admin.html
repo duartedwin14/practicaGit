@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin - Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align:left; }
+    #logout { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Panel de Administrador</h1>
+  <div id="welcome"></div>
+  <button id="logout">Cerrar sesión</button>
+
+  <h2>Usuarios registrados</h2>
+  <div id="usersTable">Cargando...</div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    const nombre = localStorage.getItem('nombre');
+
+    if (!token || role !== 'admin') {
+      alert('Acceso denegado. Debes iniciar sesión como admin.');
+      window.location.href = '/pages/index.html';
+    }
+
+    document.getElementById('welcome').innerText = `Bienvenido, ${nombre} (admin)`;
+
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      localStorage.removeItem('nombre');
+      window.location.href = '/pages/index.html';
+    });
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_BASE}/users/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const e = await res.json();
+          document.getElementById('usersTable').innerText = e.message || 'Error';
+          return;
+        }
+        const { users } = await res.json();
+        if (!users || users.length === 0) {
+          document.getElementById('usersTable').innerText = 'No hay usuarios';
+          return;
+        }
+
+        let html = '<table><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Creado</th></tr></thead><tbody>';
+        for (const u of users) {
+          html += `<tr><td>${u.id}</td><td>${u.nombre}</td><td>${u.email}</td><td>${u.role_name}</td><td>${u.creado_at}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('usersTable').innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('usersTable').innerText = 'Error al cargar usuarios';
+      }
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
